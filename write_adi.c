@@ -17,13 +17,13 @@ int main(void) {
         255, 242, 244,
         255, 200, 242,
         244, 222, 244
-    struct ADIheader header{
-        header.magic[0]='A';
-        header.magic[1]='B';
-        header.magic[2]='C';
-        
-        }
-
+    struct ADIHeader header;
+    header.magic[0] = 'A';
+    header.magic[1] = 'D';
+    header.magic[2] = 'I';
+    header.width = width;
+    header.height = height;
+    header.channels = channels;
        return 0;
 }
 
