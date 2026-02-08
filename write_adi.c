@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 struct ADIHeader {
     char magic[3];
@@ -7,38 +8,69 @@ struct ADIHeader {
     unsigned char channels;
 };
 
-int main(void) {
-    int width = 2;
-    int height = 2;
-    unsigned char channels = 3;
+unsigned char *read_adi(const char *filename,
+                        struct ADIHeader *out_header)
+{
+    FILE *fptr = fopen(filename, "rb");
+    if (fptr == NULL) {
+        return NULL;
+    }
 
-    unsigned char image[12] = {
-        255, 242, 222,
-        255, 242, 244,
-        255, 200, 242,
-        244, 222, 244
-    };
+    if (fread(out_header, sizeof(*out_header), 1, fptr) != 1) {
+        fclose(fptr);
+        return NULL;
+    }
 
-    struct ADIHeader header;
-    header.magic[0] = 'A';
-    header.magic[1] = 'D';
-    header.magic[2] = 'I';
-    header.width = width;
-    header.height = height;
-    header.channels = channels;
+    /* Validate magic */
+    if ((*out_header).magic[0] != 'A' ||
+        (*out_header).magic[1] != 'D' ||
+        (*out_header).magic[2] != 'I') {
+        fclose(fptr);
+        return NULL;
+    }
 
+    /* Validate dimensions */
+    if ((*out_header).width <= 0 ||
+        (*out_header).height <= 0 ||
+        (((*out_header).channels != 1) &&
+         ((*out_header).channels != 3))) {
+        fclose(fptr);
+        return NULL;
+    }
 
-    //file writing
-    FILE *fptr=fopen("test.adi","wb");
-    if (fptr==NULL){
-        return 1;}
-    fwrite(&header,sizeof(header),1,fptr);
-    fwrite(image,1,(width * height) * channels,fptr);
+    int pixel_bytes =
+        (*out_header).width *
+        (*out_header).height *
+        (*out_header).channels;
+
+    unsigned char *pixels = malloc(pixel_bytes);
+    if (pixels == NULL) {
+        fclose(fptr);
+        return NULL;
+    }
+
+    if (fread(pixels, 1, pixel_bytes, fptr) != pixel_bytes) {
+        free(pixels);
+        fclose(fptr);
+        return NULL;
+    }
+
     fclose(fptr);
+    return pixels;
+}
 
+int main(void)
+{
+    struct ADIHeader header;
+    unsigned char *pixels = read_adi("test.adi", &header);
 
-    
+    if (pixels == NULL) {
+        return 1;
+    }
 
+    /* use pixels + header */
+
+    free(pixels);
     return 0;
 }
 

@@ -14,7 +14,7 @@ int main(void) {
         return 1;
     }
 
-    /* Read header */
+    
     struct ADIheader header;
     fread(&header, sizeof(header), 1, fptr);
 
@@ -38,7 +38,7 @@ int main(void) {
     fread(pixels, 1, pixel_bytes, fptr);
     fclose(fptr);
 
-    /* Verify by printing */
+    
     for (int i = 0; i < pixel_bytes; i++) {
         printf("%d ", pixels[i]);
     }
