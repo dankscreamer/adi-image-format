@@ -1,50 +1,58 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "adi.h"
 
-struct ADIheader {
-    char magic[3];
-    int width;
-    int height;
-    unsigned char channels;
-};
-
-int main(void) {
-    FILE *fptr = fopen("test.adi", "rb");
+unsigned char *read_adi(const char *filename,
+                        struct ADIHeader *out_header)
+{
+    FILE *fptr = fopen(filename, "rb");
     if (fptr == NULL) {
-        return 1;
+        return NULL;
     }
 
-    
-    struct ADIheader header;
-    fread(&header, sizeof(header), 1, fptr);
-
-    
-    if (header.magic[0] != 'A' ||
-        header.magic[1] != 'D' ||
-        header.magic[2] != 'I') {
+    /* Read header */
+    if (fread(out_header, sizeof(*out_header), 1, fptr) != 1) {
         fclose(fptr);
-        return 1;
+        return NULL;
     }
 
-    
-    int pixel_bytes = header.width * header.height * header.channels;
+    /* Validate magic */
+    if ((*out_header).magic[0] != 'A' ||
+        (*out_header).magic[1] != 'D' ||
+        (*out_header).magic[2] != 'I') {
+        fclose(fptr);
+        return NULL;
+    }
+
+    /* Validate dimensions */
+    if ((*out_header).width <= 0 ||
+        (*out_header).height <= 0 ||
+        (((*out_header).channels != 1) &&
+         ((*out_header).channels != 3))) {
+        fclose(fptr);
+        return NULL;
+    }
+
+    /* Compute pixel byte count */
+    size_t pixel_bytes =
+        (size_t)(*out_header).width *
+        (size_t)(*out_header).height *
+        (size_t)(*out_header).channels;
+
     unsigned char *pixels = malloc(pixel_bytes);
     if (pixels == NULL) {
         fclose(fptr);
-        return 1;
+        return NULL;
     }
 
-    
-    fread(pixels, 1, pixel_bytes, fptr);
+    /* Read pixel data */
+    if (fread(pixels, 1, pixel_bytes, fptr) != pixel_bytes) {
+        free(pixels);
+        fclose(fptr);
+        return NULL;
+    }
+
     fclose(fptr);
-
-    
-    for (int i = 0; i < pixel_bytes; i++) {
-        printf("%d ", pixels[i]);
-    }
-    printf("\n");
-
-    free(pixels);
-    return 0;
+    return pixels;
 }
 
