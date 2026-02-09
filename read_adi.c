@@ -31,7 +31,7 @@ unsigned char *read_adi(const char *filename,
          ((*out_header).channels != 3))) {
         fclose(fptr);
         return NULL;
-    }
+        }
 
     /* Compute pixel byte count */
     size_t pixel_bytes =
