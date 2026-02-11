@@ -1,4 +1,5 @@
 ADI Image Format — v1 Documentation
+Inline comments ai assisted
 Overview
 
 ADI (Adit Image) is a simple binary image container format designed to store raw pixel data along with minimal metadata.
