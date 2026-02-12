@@ -6,7 +6,7 @@ struct ADIheader{
     int width;
     int  height;
     char channels; 
-    }
+    };
 
 int main(){
 

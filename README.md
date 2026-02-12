@@ -1,154 +1,122 @@
-ADI Image Format — v1 Documentation
-Inline comments ai assisted
-Overview
+# ADI Image Format (v1)
 
-ADI (Adit Image) is a simple binary image container format designed to store raw pixel data along with minimal metadata.
+ADI (Adit Image) is a simple raw image container format implemented in C.
 
-ADI is intentionally not a compressed format like JPG or PNG.
-It is meant to be a stable, low-level container that other tools can build on (encryption, sharing, viewing, etc.).
+The goal of this project was to understand:
 
-Design Goals
+- Binary file formats
+- Struct layout and memory alignment
+- File I/O in C
+- Multi-file builds and linking
+- Integrating third-party libraries
+- Rendering raw pixel buffers using SDL2
 
-Simple and explicit binary layout
+This is not a compressed image format like PNG or JPG.  
+ADI stores raw pixel data along with minimal metadata.
 
-Easy to read and write in C
+---
 
-Self-describing (dimensions stored in file)
+## 🧱 File Format (ADI v1)
 
-Suitable for future extensions (versioning, encryption)
+An ADI file contains:
 
-No compression, no decoding logic
+[ ADIHeader ][ Raw Pixel Data ]
 
-Non-Goals (v1)
 
-No JPG/PNG decoding
+### Header Structure
 
+```c
+struct ADIHeader {
+    char magic[3];            // 'A', 'D', 'I'
+    int width;                // Image width
+    int height;               // Image height
+    unsigned char channels;   // 1 (grayscale) or 3 (RGB)
+};
+After the header, pixel data is stored in row-major order:
+
+R G B  R G B  R G B ...
+🔁 Project Pipeline
+This project implements a full image pipeline:
+
+PNG/JPG
+   ↓ (stb_image)
+Raw pixels in memory
+   ↓ (write_adi)
+ADI file
+   ↓ (read_adi)
+Raw pixels
+   ↓ (SDL2)
+Window display
+📦 Dependencies
+Clang (or GCC)
+
+SDL2
+
+stb_image.h (included in project)
+
+On macOS (Homebrew):
+
+brew install sdl2
+🔨 Build Commands
+Build ADI Importer (Image → ADI)
+clang -Wall -Wextra -std=c17 \
+    write_adi.c read_adi.c adi_import.c \
+    -o adi_import \
+    `sdl2-config --cflags --libs`
+Build ADI Viewer (ADI → Screen)
+clang -Wall -Wextra -std=c17 \
+    write_adi.c read_adi.c adi_view.c \
+    -o adi_view \
+    `sdl2-config --cflags --libs`
+🚀 Usage
+Convert PNG/JPG to ADI
+./adi_import input.png output.adi
+Example:
+
+./adi_import testimg.png adit.adi
+
+View ADI File
+./adi_view adit.adi
+A window will open displaying the image.
+
+🧪 Testing
+The project also includes a round-trip test:
+
+pixels → write_adi → file → read_adi → pixels
+This verifies byte-level correctness.
+
+🎯 What This Project Demonstrates
+Designing a binary file format
+
+Managing memory ownership in C
+
+Handling struct padding implications
+
+Multi-file compilation and linking
+
+Integrating third-party decoding libraries
+
+Rendering raw pixel buffers using SDL2
+
+📌 Limitations (v1)
 No compression
 
-No image display
+No alpha channel support
 
-No encryption (planned for later versions)
+Endianness not handled explicitly
 
-File Layout (ADI v1)
+Struct layout dependent on compiler
 
-An ADI file consists of two parts, written in order:
+No encryption (planned for future version)
 
-[ ADIHeader ][ Pixel Data ]
+🙏 Credits
+Image decoding powered by stb_image.h
+https://github.com/nothings/stb
 
-1. ADIHeader
+Rendering powered by SDL2
+https://www.libsdl.org/
 
-The header is written directly as a C struct.
-
-struct ADIHeader {
-    char magic[3];            // Must be 'A', 'D', 'I'
-    int width;                // Image width in pixels
-    int height;               // Image height in pixels
-    unsigned char channels;   // Number of channels (1 = grayscale, 3 = RGB)
-};
-
-Header Notes
-
-magic identifies the file as ADI
-
-width and height must be positive
-
-channels must be 1 or 3
-
-Header size is fixed for v1
-
-Header is stored uncompressed and unencrypted
-
-2. Pixel Data
-
-Immediately after the header, raw pixel bytes are stored.
-
-pixel_count = width × height × channels
-
-
-Each pixel channel is 1 byte (0–255)
-
-Pixels are stored in row-major order
-
-RGB pixels are stored as:
-
-R, G, B, R, G, B, ...
-
-API Overview
-
-ADI v1 exposes two functions.
-
-Writing an ADI file
-int write_adi(const char *filename,
-              struct ADIHeader *header,
-              unsigned char *pixels);
-
-Behavior
-
-Writes the header first
-
-Writes raw pixel data immediately after
-
-Returns 0 on success
-
-Returns non-zero on failure
-
-Reading an ADI file
-unsigned char *read_adi(const char *filename,
-                        struct ADIHeader *out_header);
-
-Behavior
-
-Reads and validates the header
-
-Allocates memory for pixel data
-
-Reads pixel bytes into allocated memory
-
-Returns pointer to pixel data on success
-
-Returns NULL on failure
-
-Caller must free the returned buffer
-
-Validation Rules
-
-When reading an ADI file, the following checks are enforced:
-
-magic == "ADI"
-
-width > 0
-
-height > 0
-
-channels == 1 || channels == 3
-
-Files failing validation are rejected.
-
-Memory Ownership
-
-write_adi does not allocate memory
-
-read_adi allocates pixel memory using malloc
-
-The caller is responsible for calling free
-
-Example Use Case
-struct ADIHeader header;
-header.magic[0] = 'A';
-header.magic[1] = 'D';
-header.magic[2] = 'I';
-header.width = 2;
-header.height = 2;
-header.channels = 3;
-
-unsigned char pixels[12] = {
-    255, 0, 0,
-    0, 255, 0,
-    0, 0, 255,
-    255, 255, 255
-};
-
-write_adi("image.adi", &header, pixels);
+The SDL integration, README structuring, and architectural guidance were developed with assistance from AI tooling.
 
 Testing
 
